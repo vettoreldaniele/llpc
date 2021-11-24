@@ -18,7 +18,16 @@ jobs:
         base-image-template: ["gcr.io/stadia-open-source/amdvlk_%s%s_%s:nightly"]
         config:              [Release]
         assertions:          ["OFF", "ON"]
-        feature-set:         ["+gcc", "+clang", "+clang+shadercache", "+clang+sanitizers"]
+        feature-set:         ["+gcc", "+clang", "+clang+shadercache", "+clang+sanitizers", "+clang+coverage", "+clang+shadercache+coverage"]
+        exclude:
+          - feature-set: "+clang"
+            assertions:  "OFF"
+          - feature-set: "+clang+shadercache"
+            assertions:  "ON"
+          - feature-set: "+clang+coverage"
+            assertions:  "ON"
+          - feature-set: "+clang+shadercache+coverage"
+            assertions:  "OFF"
     steps:
       - name: Free up disk space
         if: contains(matrix.feature-set, '+sanitizers')
@@ -46,4 +55,18 @@ jobs:
                             --build-arg LLPC_REPO_NAME="${GITHUB_REPOSITORY}"
                             --build-arg LLPC_REPO_REF="${GITHUB_REF}"
                             --build-arg LLPC_REPO_SHA="${GITHUB_SHA}"
+                            --build-arg FEATURES="${{ matrix.feature-set }}" 
                             --tag llpc/ci-shaderdb
+      - name: Upload code coverage report
+        if: contains(matrix.feature-set, '+coverage')
+        run: |
+          gsutil -m cp -r /vulkandriver/coverage_report/* gs://amdvlk-llpc-github-ci-artifacts-public/coverage_${IMAGE_TAG}_${GITHUB_SHA}/
+      - name: Add comment with code coverage report link
+        if: contains(matrix.feature-set, '+coverage')
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            The LLPC code coverage report is available at https://storage.cloud.google.com/amdvlk-llpc-github-ci-artifacts-public/coverage_${IMAGE_TAG}_${GITHUB_SHA}/index.html.
+
+            Configuration: $IMAGE_TAG.
