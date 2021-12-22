@@ -41,6 +41,8 @@ jobs:
           FEATURES_LOWER=$(echo "${{ matrix.feature-set }}" | tr "+" "_")
           TAG=$(printf "${{ matrix.image-template }}" "$CONFIG_LOWER" "$FEATURES_LOWER")
           echo "IMAGE_TAG=$TAG" | tee -a $GITHUB_ENV
+          CONFIG_TAG=$(printf "%s%s" "$CONFIG_LOWER" "$FEATURES_LOWER")
+          echo "CONFIG_TAG=$CONFIG_TAG" | tee -a $GITHUB_ENV
       - name: Fetch the latest prebuilt AMDVLK
         run: docker pull "$IMAGE_TAG"
       - name: Build and Test with Docker
@@ -49,4 +51,26 @@ jobs:
                             --build-arg LLPC_REPO_NAME="${GITHUB_REPOSITORY}"
                             --build-arg LLPC_REPO_REF="${GITHUB_REF}"
                             --build-arg LLPC_REPO_SHA="${GITHUB_SHA}"
+                            --build-arg FEATURES="${{ matrix.feature-set }}"
                             --tag llpc/ci-shaderdb
+      - name: Copy code coverage report to host
+        if: contains(matrix.feature-set, '+coverage') && github.event.pull_request.number
+        run: |
+          docker run -v "$HOME:/host" llpc/ci-shaderdb 'bash' '-c' 'cp -r /vulkandriver/coverage_report /host/ && chmod 777 -R /host/coverage_report'
+      #- name: Upload code coverage report to GCS
+      #  if: contains(matrix.feature-set, '+coverage') && github.event.pull_request.number
+      #  run: |
+      #    gsutil -m cp -r "$HOME/coverage_report/*" "gs://amdvlk-llpc-github-ci-artifacts-public/coverage_${CONFIG_TAG}_${GITHUB_SHA}/"
+      - name: Check code coverage report files
+        if: contains(matrix.feature-set, '+coverage') && github.event.pull_request.number
+        run: |
+          ls -l $HOME
+          ls -l $HOME/coverage_report
+      - name: Add comment with code coverage report link
+        if: contains(matrix.feature-set, '+coverage') && github.event.pull_request.number
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            The LLPC code coverage report is available at https://storage.cloud.google.com/amdvlk-llpc-github-ci-artifacts-public/coverage_${{ env.CONFIG_TAG }}_${{ github.sha }}/index.html.
+            Configuration: ${{ env.CONFIG_TAG }}.

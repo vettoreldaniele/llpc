@@ -14,3 +14,8 @@ rm *.profraw
 llvm-cov show -format=html -ignore-filename-regex='.*llvm.*' \
          -instr-profile=code_coverage_profile.profdata builds/ci-build/compiler/llpc/amdllpc \
          -o coverage_report
+
+
+
+ls -l .
+ls -l coverage_report
