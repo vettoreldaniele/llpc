@@ -1,0 +1,40 @@
+name: Upload Coverage Report
+
+on:
+  workflow_run:
+    workflows:
+      - LLPC Docker CI
+    types:
+      - completed
+
+jobs:
+  retrieve-and-upload:
+    name: "Features: ${{ matrix.feature-set }}"
+    runs-on: ${{ matrix.host-os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        host-os:             ["ubuntu-20.04"]
+        image-template:      ["gcr.io/stadia-open-source/amdvlk_%s%s:nightly"]
+        config:              [Release]
+        feature-set:         [
+                              "+clang+coverage",
+     #                         "+clang+shadercache+coverage+assertions",
+      ]
+    steps:
+      - name: Echo pull request
+        if: github.event.pull_request.number
+        run: |
+          echo "From pull request"
+      - name: Echo not pull request
+        if: !github.event.pull_request.number
+        run: |
+          echo "Not from pull request"
+      # - name: Add comment with code coverage report link
+      #   if: contains(matrix.feature-set, '+coverage') && github.event.pull_request.number
+      #   uses: peter-evans/create-or-update-comment@v1.4.5
+      #   with:
+      #     issue-number: ${{ github.event.pull_request.number }}
+      #     body: |
+      #       The LLPC code coverage report is available at https://storage.googleapis.com/amdvlk-llpc-github-ci-artifacts-public/coverage_${{ env.CONFIG_TAG }}_${{ github.sha }}/index.html.
+      #       Configuration: ${{ env.CONFIG_TAG }}.
