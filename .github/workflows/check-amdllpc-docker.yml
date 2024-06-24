@@ -32,6 +32,7 @@ jobs:
                       /usr/lib/jvm /opt/hostedtoolcache/go /opt/hostedtoolcache/CodeQL /opt/az \
                       /usr/share/swift /usr/local/.ghcup /usr/local/graalvm /usr/local/lib/node_modules
           echo 'After:' && df -h
+          sudo du -a / | sort -n -r | head -n 30
       - name: Checkout LLPC
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY}.git .
@@ -74,3 +75,6 @@ jobs:
         with:
           name: pr_num
           path: pr_num.txt
+      - name: Log disk space usage
+        run: |
+          echo 'Disk space:' && df -h

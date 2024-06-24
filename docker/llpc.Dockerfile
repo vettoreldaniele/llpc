@@ -35,6 +35,8 @@ COPY docker/*.sh /vulkandriver/
 # Sync the repos. Replace the base LLPC with a freshly checked-out one.
 RUN /vulkandriver/update-llpc.sh
 
+RUN df -ah
+
 # Build LLPC.
 WORKDIR /vulkandriver/builds/ci-build
 RUN source /vulkandriver/env.sh \
@@ -42,12 +44,18 @@ RUN source /vulkandriver/env.sh \
     && cmake --build . --target amdllpc \
     && cmake --build . --target spvgen
 
+RUN df -ah
+
 # Run the lit test suite.
 RUN source /vulkandriver/env.sh \
     && cmake --build . --target check-amdllpc check-amdllpc-units -- -v \
     && cmake --build . --target check-lgc check-lgc-units -- -v
 
+
+
 # Generate code coverage report for LLPC.
 RUN if echo "$FEATURES" | grep -q "+coverage" ; then \
       /vulkandriver/generate-coverage-report.sh; \
     fi
+
+RUN df -ah
