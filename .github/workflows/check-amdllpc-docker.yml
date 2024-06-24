@@ -74,3 +74,6 @@ jobs:
         with:
           name: pr_num
           path: pr_num.txt
+      - name: Log disk space usage
+        run: |
+          echo 'Disk space:' && df -h
